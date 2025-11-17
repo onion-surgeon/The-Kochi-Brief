@@ -1,0 +1,39 @@
+[project]
+name = "kochi-newsletter"
+version = "0.1.0"
+description = "A local-news aggregator and newsletter for Kochi, India."
+authors = [{ name = "Gemini", email = "gemini@google.com" }]
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "pydantic",
+    "pydantic-settings",
+    "sqlmodel",
+    "alembic",
+    "celery",
+    "redis",
+    "requests",
+    "beautifulsoup4",
+    "python-jose[cryptography]",
+    "passlib[bcrypt]",
+    "python-multipart",
+    "mailgun",
+    "pre-commit",
+    "ruff",
+    "black",
+    "isort"
+]
+requires-python = ">=3.11"
+readme = "README.md"
+license = { text = "MIT" }
+
+[tool.ruff]
+line-length = 88
+select = ["E", "F", "W", "I", "UP"]
+ignore = ["E501"]
+
+[tool.black]
+line-length = 88
+
+[tool.isort]
+profile = "black"
