@@ -21,7 +21,10 @@ dependencies = [
     "pre-commit",
     "ruff",
     "black",
-    "isort"
+    "isort",
+    "psycopg2>=2.9.11",
+    "asyncio>=4.0.0",
+    "asyncpg>=0.31.0",
 ]
 requires-python = ">=3.11"
 readme = "README.md"
