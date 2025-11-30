@@ -5,18 +5,13 @@ from sqlalchemy import pool
 
 from alembic import context
 
+from app.core.config import settings
+
 from app.core.db.base import Base
 from app.models.user import User
 
 import asyncio
-import os
 
-from dotenv import load_dotenv
-load_dotenv() 
-
-DATABASE_URL = os.environ.get("DATABASE_URL")
-if DATABASE_URL is None:
-    raise ValueError("DATABASE_URL not set in environment")
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -26,6 +21,8 @@ config = context.config
 # This line sets up loggers basically.
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
+
+config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
 
 # add your model's MetaData object here
 # for 'autogenerate' support
@@ -38,7 +35,7 @@ target_metadata = Base.metadata
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
 
-
+DATABASE_URL = settings.DATABASE_URL
 
 
 
