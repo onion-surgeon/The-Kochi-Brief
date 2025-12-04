@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy import select, update
 from app.core.config import settings
 from app.schemas.user import UserAuth
@@ -8,6 +8,7 @@ from app.schemas.user import UserAuth
 from app.core.security.hashing import hash_password, verify_password
 from app.core.security.jwt import create_token, decode_token
 from app.mail.sender import MailSender
+from app.utils.time_utils import check_cooldown
 
 mail_sender = MailSender()
 class UserService:
@@ -52,8 +53,13 @@ class UserService:
         user = await self.check_existing_email(email,db)
         if not user:
             raise ValueError("User not found")
+        
         elif user.is_verified:
             raise ValueError("User is already verified")
+        
+        elif (remaining:= check_cooldown(user.email_verification_sent_at,settings.EMAIL_VERIFY_COOLDOWN_MINUTES)):
+            raise Exception(f"Kindly wait {remaining//60} minutes, {remaining%60} seconds before trying again.")
+        
         else:            
             to_encode = {"sub":str(user.id),"type":"email_verify"}
             token = create_token(to_encode,settings.EMAIL_VERIFY_TOKEN_EXPIRE_MINUTES)
@@ -63,6 +69,10 @@ class UserService:
                        )
             if response.status_code != 200:
                 raise Exception(f"Error:{response.text}")
+            
+            stmt = update(User).where(User.id == user.id).values(email_verification_sent_at=datetime.now(timezone.utc))
+            await db.execute(stmt)
+            await db.commit()
             return {"message":"Verification email sent"}
         
         

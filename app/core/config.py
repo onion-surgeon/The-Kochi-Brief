@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: timedelta = timedelta(minutes=30)
     EMAIL_VERIFY_TOKEN_EXPIRE_MINUTES : timedelta = timedelta(minutes=10)
+    EMAIL_VERIFY_COOLDOWN_MINUTES : timedelta = timedelta(minutes=10)
 
     class Config:
         env_file = ".env"

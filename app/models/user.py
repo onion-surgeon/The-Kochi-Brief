@@ -41,3 +41,8 @@ class User(Base):
         DateTime(timezone=True),
         server_default=func.now()
     )
+
+    email_verification_sent_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True
+    )
