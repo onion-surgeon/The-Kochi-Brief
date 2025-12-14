@@ -7,43 +7,41 @@ from app.core.security.dependency import get_current_user
 from app.models.user import User
 from app.schemas.user import UserBase, UserOut, UserAuth, UserToken
 from app.services.user_service import UserService
+from app.utils.response import SuccessResponse, success_response
 
 user_router = APIRouter()
 
 userservice = UserService()
 
-@user_router.post("/signup", response_model=str,status_code=201)
+@user_router.post("/signup", response_model=SuccessResponse,status_code=201)
 async def sign_up(payload:UserAuth, db:AsyncSession = Depends(get_db)):
-    try:
         new_user = await userservice.create_user(payload, db)
-        return "User created successfully"
-    except ValueError as e:
-        raise HTTPException(
-            status_code = status.HTTP_409_CONFLICT,
-            detail = str(e)
-        )
+        return success_response(message = "User created successfully")
+
     
-@user_router.post("/login", response_model=UserToken)
+@user_router.post("/login", response_model=SuccessResponse[UserToken], status_code=200)
 async def login(payload:UserAuth, db:AsyncSession = Depends(get_db)):
-    try:
         user = await userservice.login(payload, db)
-        return user
-    except Exception as e:
-                raise HTTPException(
-            status_code = status.HTTP_409_CONFLICT,
-            detail = str(e)
+        return success_response(
+          message = "User logged in successfully",
+          data =  user
         )
 
-@user_router.get("/users", response_model=List[UserBase])
+
+@user_router.get("/users", response_model=SuccessResponse[List[UserBase]])
 async def get_all_users(db:AsyncSession = Depends(get_db),curr_user:User = Depends(get_current_user)):
      return await userservice.select_all_users(db)
      
-@user_router.post("/verify")
+@user_router.post("/verify",response_model=SuccessResponse, status_code=202)
 async def send_verification_mail(db:AsyncSession = Depends(get_db),curr_user:User = Depends(get_current_user)):
-     return await userservice.email_verification(curr_user.email,db)
-
-@user_router.get("/verify")
+     res = await userservice.email_verification(curr_user.email,db)
+     if res:
+           return success_response(message= "Email sent successfully")
+     
+@user_router.get("/verify", response_model=SuccessResponse, status_code=200)
 async def update_verification_status(token:str, db:AsyncSession = Depends(get_db)):
-     return await userservice.update_user_verified(token,db)
+     res = await userservice.update_user_verified(token,db)
+     if res:
+           return success_response(message= "User successfully verified")
 
 

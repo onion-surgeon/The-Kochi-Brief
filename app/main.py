@@ -1,4 +1,6 @@
 from fastapi import FastAPI
+import app.exceptions.types as exc 
+import app.exceptions.handler as handler
 from app.api.users import user_router
 
 app = FastAPI(
@@ -6,6 +8,13 @@ app = FastAPI(
     description="A local-news aggregator and newsletter for Kochi, India.",
     version="0.1.0",
 )
+
+app.add_exception_handler(exc.UserAlreadyActed, handler.user_already_acted_handler)
+app.add_exception_handler(exc.UserNotFound, handler.user_not_found_handler)
+app.add_exception_handler(exc.IncorrectCredentials, handler.incorrect_credentials_handler)
+app.add_exception_handler(exc.APIException, handler.external_api_handler)
+app.add_exception_handler(exc.CooldownException, handler.cooldown_handler)
+app.add_exception_handler(exc.TokenException, handler.token_exception)
 
 @app.get("/")
 def read_root():

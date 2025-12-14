@@ -9,6 +9,7 @@ from app.core.security.hashing import hash_password, verify_password
 from app.core.security.jwt import create_token, decode_token
 from app.mail.sender import MailSender
 from app.utils.time_utils import check_cooldown
+import app.exceptions.types as exc
 
 mail_sender = MailSender()
 class UserService:
@@ -20,7 +21,7 @@ class UserService:
         existing_user = await self.check_existing_email(user_data.email, db)
 
         if existing_user:
-            raise ValueError("Email already registered")
+            raise exc.UserAlreadyActed("Email already registered")
         
         new_user = User(
                 email = user_data.email,
@@ -41,7 +42,7 @@ class UserService:
                     "type":"access",
                     "email":req_user.email,
                     "token":token}
-        raise ValueError("Incorrect Email or password")
+        raise exc.IncorrectCredentials
         
     
     async def check_existing_email(self, email:str, db:AsyncSession)-> User | None:
@@ -52,13 +53,13 @@ class UserService:
     async def email_verification(self, email:str, db:AsyncSession):
         user = await self.check_existing_email(email,db)
         if not user:
-            raise ValueError("User not found")
+           raise exc.IncorrectCredentials
         
         elif user.is_verified:
-            raise ValueError("User is already verified")
+            raise exc.UserAlreadyActed("User already verified")
         
         elif (remaining:= check_cooldown(user.email_verification_sent_at,settings.EMAIL_VERIFY_COOLDOWN_MINUTES)):
-            raise Exception(f"Kindly wait {remaining//60} minutes, {remaining%60} seconds before trying again.")
+            raise exc.CooldownException(remaining)
         
         else:            
             to_encode = {"sub":str(user.id),"type":"email_verify"}
@@ -68,33 +69,33 @@ class UserService:
                        html = f"{settings.BASE_URL}/verify?token={token}"
                        )
             if response.status_code != 200:
-                raise Exception(f"Error:{response.text}")
+                raise exc.APIException(response.text)
             
             stmt = update(User).where(User.id == user.id).values(email_verification_sent_at=datetime.now(timezone.utc))
             await db.execute(stmt)
             await db.commit()
-            return {"message":"Verification email sent"}
+            return True
         
         
     async def update_user_verified(self, token: str, db: AsyncSession):
         data = decode_token(token)
         print(data)
         if data.get("type") != "email_verify":
-            raise Exception("invalid token")
+            raise exc.TokenException("Invalid token")
 
         user_id = int(data["sub"])
         user = await db.get(User, user_id)
 
         if not user:
-            raise Exception("User not found")
+            raise exc.UserNotFound
         
         elif user.is_verified:
-            raise Exception("User already verified")
+            raise exc.UserAlreadyActed("User already verified")
 
         user.is_verified = True
         await db.commit()
 
-        return {"message": "Email verified successfully!"}
+        return True
     
 
 
