@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from fastapi import BackgroundTasks
 from sqlalchemy import select, update
 from app.core.config import settings
 from app.schemas.user import UserAuth
@@ -50,7 +51,7 @@ class UserService:
         result = await db.execute(stmt)
         return result.scalar_one_or_none()
     
-    async def email_verification(self, email:str, db:AsyncSession):
+    async def check_email_verification_possible(self, background_tasks: BackgroundTasks, email:str, db:AsyncSession):
         user = await self.check_existing_email(email,db)
         if not user:
            raise exc.IncorrectCredentials
@@ -61,17 +62,27 @@ class UserService:
         elif (remaining:= check_cooldown(user.email_verification_sent_at,settings.EMAIL_VERIFY_COOLDOWN_MINUTES)):
             raise exc.CooldownException(remaining)
         
-        else:            
-            to_encode = {"sub":str(user.id),"type":"email_verify"}
+        background_tasks.add_task(self.send_verification_mail_task,email, user.id, db)
+        return True
+        
+    async def send_verification_mail_task(self, email: str, id: int, db: AsyncSession):        
+            to_encode = {"sub":str(id),"type":"email_verify"}
             token = create_token(to_encode,settings.EMAIL_VERIFY_TOKEN_EXPIRE_MINUTES)
+            verification_email = f"{settings.BASE_URL}/verify?token={token}"
+            html_builder = f"""
+            <p>Please verify your email by clicking the link below:</p>
+            <a href="{verification_email}">
+            {verification_email}
+            </a>
+            """
             response = await mail_sender.send_email(email,subject= "Email Verification",
-                       text = "Click on the below link to verify your email",
-                       html = f"{settings.BASE_URL}/verify?token={token}"
+                       text = "Email verification link",
+                       html = html_builder
                        )
             if response.status_code != 200:
                 raise exc.APIException(response.text)
             
-            stmt = update(User).where(User.id == user.id).values(email_verification_sent_at=datetime.now(timezone.utc))
+            stmt = update(User).where(User.id == id).values(email_verification_sent_at=datetime.now(timezone.utc))
             await db.execute(stmt)
             await db.commit()
             return True

@@ -1,5 +1,5 @@
 from typing import List
-from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db.session import get_db
@@ -33,10 +33,10 @@ async def get_all_users(db:AsyncSession = Depends(get_db),curr_user:User = Depen
      return await userservice.select_all_users(db)
      
 @user_router.post("/verify",response_model=SuccessResponse, status_code=202)
-async def send_verification_mail(db:AsyncSession = Depends(get_db),curr_user:User = Depends(get_current_user)):
-     res = await userservice.email_verification(curr_user.email,db)
-     if res:
-           return success_response(message= "Email sent successfully")
+async def send_verification_mail(background_tasks: BackgroundTasks, db:AsyncSession = Depends(get_db),curr_user:User = Depends(get_current_user)):
+     check = await userservice.check_email_verification_possible(background_tasks, curr_user.email, db)
+     if check:
+           return success_response(message= "Verification Email queued for sending")
      
 @user_router.get("/verify", response_model=SuccessResponse, status_code=200)
 async def update_verification_status(token:str, db:AsyncSession = Depends(get_db)):
