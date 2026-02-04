@@ -6,7 +6,7 @@ authors = [{ name = "Gemini", email = "gemini@google.com" }]
 dependencies = [
     "fastapi",
     "uvicorn[standard]",
-    "pydantic",
+    "pydantic[email]",
     "pydantic-settings",
     "sqlmodel",
     "alembic",
@@ -15,7 +15,6 @@ dependencies = [
     "requests",
     "beautifulsoup4",
     "python-jose[cryptography]",
-    "passlib[bcrypt]",
     "python-multipart",
     "mailgun",
     "pre-commit",
@@ -25,6 +24,9 @@ dependencies = [
     "psycopg2>=2.9.11",
     "asyncio>=4.0.0",
     "asyncpg>=0.31.0",
+    "passlib[bcrypt]>=1.7.4",
+    "bcrypt==3.2.2",
+    "httpx>=0.28.1",
 ]
 requires-python = ">=3.11"
 readme = "README.md"

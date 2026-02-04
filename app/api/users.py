@@ -1,11 +1,47 @@
-from fastapi import APIRouter, Depends
+from typing import List
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Depends, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.user import UserDB
+from app.core.db.session import get_db
+from app.core.security.dependency import get_current_user
+from app.models.user import User
+from app.schemas.user import UserBase, UserOut, UserAuth, UserToken
 from app.services.user_service import UserService
+from app.utils.response import SuccessResponse, success_response
 
-router = APIRouter()
+user_router = APIRouter()
 
-@router.delete("/account")
-async def delete_account(user_service: UserService = Depends()):
-    # TODO: Implement account deletion logic
-    return {"message": "Account deleted successfully."}
+userservice = UserService()
+
+@user_router.post("/signup", response_model=SuccessResponse,status_code=201)
+async def sign_up(payload:UserAuth, db:AsyncSession = Depends(get_db)):
+        new_user = await userservice.create_user(payload, db)
+        return success_response(message = "User created successfully")
+
+    
+@user_router.post("/login", response_model=SuccessResponse[UserToken], status_code=200)
+async def login(payload:UserAuth, db:AsyncSession = Depends(get_db)):
+        user = await userservice.login(payload, db)
+        return success_response(
+          message = "User logged in successfully",
+          data =  user
+        )
+
+
+@user_router.get("/users", response_model=SuccessResponse[List[UserBase]])
+async def get_all_users(db:AsyncSession = Depends(get_db),curr_user:User = Depends(get_current_user)):
+     return await userservice.select_all_users(db)
+     
+@user_router.post("/verify",response_model=SuccessResponse, status_code=202)
+async def send_verification_mail(background_tasks: BackgroundTasks, db:AsyncSession = Depends(get_db),curr_user:User = Depends(get_current_user)):
+     check = await userservice.check_email_verification_possible(background_tasks, curr_user.email, db)
+     if check:
+           return success_response(message= "Verification Email queued for sending")
+     
+@user_router.get("/verify", response_model=SuccessResponse, status_code=200)
+async def update_verification_status(token:str, db:AsyncSession = Depends(get_db)):
+     res = await userservice.update_user_verified(token,db)
+     if res:
+           return success_response(message= "User successfully verified")
+
+
