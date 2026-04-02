@@ -27,6 +27,8 @@ dependencies = [
     "passlib[bcrypt]>=1.7.4",
     "bcrypt==3.2.2",
     "httpx>=0.28.1",
+    "google-genai>=1.69.0",
+    "aiolimiter>=1.2.1",
 ]
 requires-python = ">=3.11"
 readme = "README.md"

@@ -26,5 +26,22 @@ class TokenException(Exception):
           self.message = message
           super().__init__(message)
 
+class URLError(Exception):
+    def __init__(self, url: str, original_error: Exception = None):
+        self.message = f"URL not accessible: {url}"
+        self.original_error = original_error
+        super().__init__(self.message)
+
+
+class ArticleParsingException(Exception):
+    def __init__(self, field: str, message="Required field missing in response"):
+        self.message = f"{message}: {field}"
+        super().__init__(self.message)
+
+
+class ArticleSummarizationException(Exception):
+    def __init__(self, message="Failed to summarize article"):
+        self.message = message
+        super().__init__(message)
 
 
