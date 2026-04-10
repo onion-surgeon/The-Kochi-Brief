@@ -5,8 +5,10 @@ from bs4 import BeautifulSoup
 import json
 import time
 from datetime import datetime
-from app.exceptions.types import URLError
+from app.exceptions.types import RETRYABLE_NETWORK_ERRORS, URLError
 from app.schemas.article import ArticleScraped
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+
 
 SITEMAP_URL = "https://www.newindianexpress.com/news_sitemap.xml"
 
@@ -15,7 +17,11 @@ HEADERS = {
 }
 
 
-
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=2, max=10),
+    retry=retry_if_exception_type((*RETRYABLE_NETWORK_ERRORS, httpx.HTTPStatusError))
+)
 async def fetch_url(client, url):
     response = await client.get(url, headers=HEADERS, timeout=10)
     response.raise_for_status()
@@ -106,7 +112,7 @@ async def scrape_newindian(target_date):
         try:
             xml_data = await fetch_url(client, SITEMAP_URL)
         except Exception as e:
-            raise URLError(url, e)            
+            raise URLError(SITEMAP_URL, e)            
 
         urls = parse_sitemap(xml_data, target_date)
 

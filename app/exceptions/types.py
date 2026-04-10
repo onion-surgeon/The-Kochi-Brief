@@ -1,3 +1,6 @@
+import httpx
+
+
 class UserAlreadyActed(Exception):
     def __init__(self, message = "Action already executed before"):
         self.message = message
@@ -45,3 +48,11 @@ class ArticleSummarizationException(Exception):
         super().__init__(message)
 
 
+RETRYABLE_NETWORK_ERRORS = (
+    httpx.ConnectError,      # Cannot connect to the server
+    httpx.ConnectTimeout,    # Connection took too long to establish
+    httpx.ReadTimeout,       # Server started sending but then stopped
+    httpx.WriteTimeout,      # We couldn't send our request fast enough
+    httpx.PoolTimeout,       # All our local connections are busy
+    httpx.RemoteProtocolError # Connection closed unexpectedly by the site
+)

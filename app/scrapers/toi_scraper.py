@@ -6,15 +6,21 @@ from bs4 import BeautifulSoup
 import json
 import time
 from app.schemas.article import ArticleScraped
-from app.exceptions.types import URLError, ArticleParsingException
+from app.exceptions.types import URLError, ArticleParsingException, RETRYABLE_NETWORK_ERRORS
 from app.utils.response import validate_required_fields 
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+
 
 SITEMAP_URL = "https://timesofindia.indiatimes.com/staticsitemap/toi/news/sitemap-today-1.xml"
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (compatible; NewsScraper/1.0)"
 }
 
-
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=2, max=10),
+    retry=retry_if_exception_type((*RETRYABLE_NETWORK_ERRORS, httpx.HTTPStatusError))
+)
 async def fetch_url(client, url):
     response = await client.get(url)   
     response.raise_for_status()
@@ -133,7 +139,7 @@ async def scrape_toi(targetdate):
         try:
             xml_data = await fetch_url(client, SITEMAP_URL)
         except Exception as e:
-            raise URLError(url, e)
+            raise URLError(SITEMAP_URL, e)
         
         all_urls = parse_sitemap(xml_data)
 
