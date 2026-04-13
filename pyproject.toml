@@ -30,6 +30,8 @@ dependencies = [
     "google-genai>=1.69.0",
     "aiolimiter>=1.2.1",
     "google-api-core>=2.30.2",
+    "lxml>=6.0.3",
+    "python-dotenv>=1.2.1",
 ]
 requires-python = ">=3.11"
 readme = "README.md"

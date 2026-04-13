@@ -62,7 +62,7 @@ class Article(Base):
     )
 
     distributed_at: Mapped[datetime | None] = mapped_column(
-        DateTime, nullable=True
+        DateTime(timezone=True), nullable=True
     )
 
     created_at: Mapped[datetime] = mapped_column(
@@ -70,5 +70,5 @@ class Article(Base):
     )
 
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, server_default=func.now(), onupdate=func.now()
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )

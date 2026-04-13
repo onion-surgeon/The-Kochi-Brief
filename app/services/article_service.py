@@ -13,7 +13,11 @@ from aiolimiter import AsyncLimiter
 
 class ArticleService:
     def __init__(self):
-        self.limiter = AsyncLimiter(15, 60)
+        self.limiter = AsyncLimiter(1, 7)
+
+    async def scrape_and_store(self,db,date: datetime):
+        articles = await self.scrape_articles(date)
+        await self.store_articles(db,articles) 
 
     async def scrape_articles(self, date: datetime):
         tasks = [
@@ -24,7 +28,6 @@ class ArticleService:
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         articles = []
-
         for result in results:
             if isinstance(result, Exception):
                 continue
@@ -37,7 +40,18 @@ class ArticleService:
         if not articles:
             return
 
+        scraped_urls = [x.url for x in articles]
+
+        result = await db.execute(
+        select(Article.url).where(Article.url.in_(scraped_urls))
+            )
+        
+        existing_urls = set(result.scalars().all())
         for article in articles:
+
+            if article.url in existing_urls:
+                continue
+
             try:
                 db_article = Article(
                     title=article.headline,
@@ -48,13 +62,7 @@ class ArticleService:
                     status = Status.SCRAPED
                 )
             
-                existing = await db.execute(
-                    select(Article).where(Article.url == article.url)
-                        )
 
-                if existing.scalar():
-                    continue
-                
                 db.add(db_article)
 
             except Exception as e:
@@ -67,7 +75,7 @@ class ArticleService:
 
 
     async def summarize_store_articles(self, db: AsyncSession):
-        articles = await self.get_articles_by_status(db, Status.SCRAPED)
+        articles = await self.get_articles_by_status(db, [Status.SCRAPED,Status.FAILED])
 
         if not articles:
             return []
@@ -98,16 +106,16 @@ class ArticleService:
         # TODO: Implement logic to approve an article
         pass
 
-    async def get_articles_by_status(self, db: AsyncSession, status: Status):
+    async def get_articles_by_status(self, db: AsyncSession, status: list):
         result = await db.execute(
-            select(Article).where(Article.status == status)
+            select(Article).where(Article.status.in_(status))
         )
         return result.scalars().all()
 
     async def summarize_with_limit(self, content: str) -> ArticleAIOutput:
         
         async with self.limiter:
-            return summarize_news(content)
+            return await summarize_news(content)
     
     async def process_article(self, article: Article) -> ProcessResult:
         try:
@@ -125,7 +133,8 @@ class ArticleService:
                 output= aioutput
             )
 
-        except Exception:
+        except Exception as e:
+            print(f"Detailed Error: {repr(e)}")
             return ProcessResult(
                 id= article.id,
                 status= Status.FAILED

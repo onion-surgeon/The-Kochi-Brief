@@ -13,8 +13,8 @@ client = genai.Client()
     wait=wait_exponential(multiplier=1, min=2, max=10),
     retry=retry_if_exception_type((exceptions.InternalServerError, exceptions.ResourceExhausted))
 )
-def summarize_news(article_text) -> ArticleAIOutput:
-    response = client.models.generate_content(
+async def summarize_news(article_text) -> ArticleAIOutput:
+    response = await client.aio.models.generate_content(
         model="gemini-2.5-flash-lite",
         contents=f"Summarize this news article concisely in 2-4 sentences. Categorise it. Add 3 or lesser tags also related to the news content topic : {article_text}",
         config=types.GenerateContentConfig(

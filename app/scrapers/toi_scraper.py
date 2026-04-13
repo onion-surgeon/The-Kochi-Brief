@@ -150,7 +150,7 @@ async def scrape_toi(targetdate):
         for url in kochi_urls:
 
             try:
-                html = await fetch_url(url)
+                html = await fetch_url(client, url)
             
             except Exception as e:
                 #raise URLError(url, e)

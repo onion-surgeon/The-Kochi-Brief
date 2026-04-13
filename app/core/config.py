@@ -5,7 +5,7 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "Kochi Newsletter"
     BASE_URL:str
     DATABASE_URL: str
-    #REDIS_URL: str
+    REDIS_URL: str
     MAILGUN_API_KEY: str
     MAILGUN_DOMAIN: str
     MAIL_FROM_NAME: str
