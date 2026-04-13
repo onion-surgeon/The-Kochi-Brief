@@ -9,6 +9,15 @@ celery_app = Celery(
     include=["app.workers.tasks"],
 )
 
+celery_app.conf.update(
+    task_track_started=True,
+    task_serializer="json",
+    accept_content=["json"],
+    result_serializer="json",
+    timezone="Asia/Kolkata",
+    enable_utc=True,
+)
+
 celery_app.conf.beat_schedule = {
     "ingest-every-30-minutes": {
         "task": "app.workers.tasks.ingest_sources",

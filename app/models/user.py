@@ -46,3 +46,9 @@ class User(Base):
         DateTime(timezone=True),
         nullable=True
     )
+
+    last_article_sent_at : Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        index= True
+    )

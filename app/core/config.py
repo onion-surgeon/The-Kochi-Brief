@@ -5,7 +5,7 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "Kochi Newsletter"
     BASE_URL:str
     DATABASE_URL: str
-    #REDIS_URL: str
+    REDIS_URL: str
     MAILGUN_API_KEY: str
     MAILGUN_DOMAIN: str
     MAIL_FROM_NAME: str
@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: timedelta = timedelta(minutes=30)
     EMAIL_VERIFY_TOKEN_EXPIRE_MINUTES : timedelta = timedelta(minutes=10)
     EMAIL_VERIFY_COOLDOWN_MINUTES : timedelta = timedelta(minutes=10)
+    GEMINI_API_KEY : str
 
     class Config:
         env_file = ".env"

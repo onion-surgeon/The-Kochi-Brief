@@ -9,6 +9,7 @@ from app.core.config import settings
 
 from app.core.db.base import Base
 from app.models.user import User
+from app.models.article import Article
 
 import asyncio
 
