@@ -3,7 +3,7 @@ from datetime import datetime
 
 from sqlalchemy import select
 from app.models.article import Article, Status
-from app.schemas.article import ArticleAIOutput, ArticleScraped, ProcessResult
+from app.schemas.article import ArticleAIOutput, ArticleHome, ArticleScraped, ProcessResult
 from app.scrapers import newindian_scraper, toi_scraper
 from app.utils.summarizer import summarize_news
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -94,9 +94,31 @@ class ArticleService:
         await db.commit()      
 
         return articles
-    def get_articles(self):
-        # TODO: Implement logic to get articles
-        return []
+    async def get_articles_home(self, db:AsyncSession)-> list[ArticleHome]:
+        result = await db.execute(
+            select(
+                Article.title,
+                Article.source,
+                Article.url,
+                Article.created_at
+            )
+            .order_by(Article.created_at.desc())
+            .limit(5)
+        )
+
+        articles = result.all()
+
+        articles=[
+            ArticleHome(
+                title=a.title,
+                source=a.source,
+                url=a.url,
+                published=a.created_at
+            )
+            for a in articles
+        ]
+
+        return articles
 
     def get_article(self, article_id: int):
         # TODO: Implement logic to get a single article
@@ -153,7 +175,6 @@ class ArticleService:
                 article_obj.category = result.output.category
                 article_obj.tags = result.output.tags
         #return None
-
 
 
        

@@ -2,6 +2,7 @@ from fastapi import FastAPI
 import app.exceptions.types as exc 
 import app.exceptions.handler as handler
 from app.api.users import user_router
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(
     title="Kochi Newsletter",
@@ -24,4 +25,12 @@ app.include_router(
     user_router,
     prefix = "/api",
     tags = ["Users"]
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )

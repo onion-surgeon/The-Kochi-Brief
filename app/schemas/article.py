@@ -18,3 +18,9 @@ class ProcessResult(BaseModel):
     id: int
     status: Status
     output: ArticleAIOutput | None
+
+class ArticleHome(BaseModel):
+    title: str
+    source: str
+    url: str
+    published:datetime
