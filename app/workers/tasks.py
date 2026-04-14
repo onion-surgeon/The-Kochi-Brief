@@ -1,6 +1,8 @@
 import asyncio
 from datetime import datetime, timedelta, timezone
 
+from celery import chain
+
 from app.mail.sender import MailSender
 
 from .celery import celery_app
@@ -15,11 +17,10 @@ from app.utils.celery_runner import run_async_with_db
     retry_backoff=True,
     retry_kwargs={"max_retries": 3},
 )
-def scraper_orchestrator_task(self):
+def scraper_orchestrator_task(self,today_date:datetime):
     articleservice = ArticleService()
-    today_date = datetime.now().date()
     try:
-        run_async_with_db(articleservice.scrape_and_store,today_date)
+        run_async_with_db(articleservice.scrape_and_store,today_date.date())
     except Exception as e:
         raise self.retry(exc=e)
 
@@ -42,15 +43,21 @@ def summarizer_orchestrator_task(self):
     retry_backoff=True,
     retry_kwargs={"max_retries": 1},
 )
-def run_mail_sender_task(self):
+def run_mail_sender_task(self, today_date:datetime):
     mail_sender = MailSender()
     newsletter_service = NewsletterService(mail_sender)
-    now = datetime.now(timezone.utc)
-    start_of_today = now.replace(
-    hour=0, minute=0, second=0, microsecond=0
-)
     try:
-        run_async_with_db(newsletter_service.send_daily_digest,start_of_today)
+        run_async_with_db(newsletter_service.send_daily_digest,today_date)
     except Exception as e:
         print(repr(e))
    
+@celery_app.task
+def run_scrape_summarise_mail_pipeline():
+    now = datetime.now(timezone.utc)
+    start_of_today = now.replace(
+    hour=0, minute=0, second=0, microsecond=0)
+    chain(
+        scraper_orchestrator_task.si(start_of_today.date()),
+        summarizer_orchestrator_task.si(),
+        run_mail_sender_task.si(start_of_today)
+    ).delay()

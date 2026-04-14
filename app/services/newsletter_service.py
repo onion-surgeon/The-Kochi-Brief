@@ -37,7 +37,6 @@ class NewsletterService:
         await self.mark_users_last_sent(db, [user.id for user in users])
 
     async def get_unsent_mail_users(self,db,today) -> list[User]:
-        print("insdie unsetmailusers")
         query = select(User).where(
             User.is_verified == True, 
             User.is_subscribed == True,
@@ -47,7 +46,6 @@ class NewsletterService:
             )
          )
         result = await db.execute(query)
-        print("done")
         return result.scalars().all()
     
     async def get_unsent_articles(self,db) -> list[Article]:
