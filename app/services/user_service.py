@@ -2,17 +2,20 @@ from datetime import datetime, timedelta, timezone
 from fastapi import BackgroundTasks
 from sqlalchemy import select, update
 from app.core.config import settings
-from app.schemas.user import UserAuth
+from app.schemas.article import ArticleHome
+from app.schemas.user import UserAuth, UserBase, UserHome
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.user import User
 from app.schemas.user import UserAuth
 from app.core.security.hashing import hash_password, verify_password
 from app.core.security.jwt import create_token, decode_token
 from app.mail.sender import MailSender
+from app.services.article_service import ArticleService
 from app.utils.time_utils import check_cooldown
 import app.exceptions.types as exc
 
 mail_sender = MailSender()
+article_service = ArticleService()
 class UserService:
     def __init__(self):
         # TODO: Initialize database connection
@@ -123,3 +126,21 @@ class UserService:
         result = await db.execute(stmt)
         return result.scalars().all()
         
+    async def check_user_verification_status(self, db:AsyncSession, id:int):
+        verified_status = await db.execute(select(User.is_verified).where(User.id == id))
+        return verified_status.scalar_one_or_none()
+    
+    async def compose_home_results(self, db:AsyncSession, id:int, email:str)->ArticleHome:
+        status = await self.check_user_verification_status(db, id)
+        articles_home = await article_service.get_articles_home(db)
+        print(articles_home)
+        response = UserHome(
+        user=UserBase(
+            userid='',
+            email=email
+        ),
+        is_verified=status,
+        articles=articles_home
+    )
+        
+        return response

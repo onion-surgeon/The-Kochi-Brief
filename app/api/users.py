@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db.session import get_db
 from app.core.security.dependency import get_current_user
 from app.models.user import User
-from app.schemas.user import UserBase, UserOut, UserAuth, UserToken
+from app.schemas.user import UserBase, UserHome, UserOut, UserAuth, UserToken
 from app.services.user_service import UserService
 from app.utils.response import SuccessResponse, success_response
 
@@ -45,3 +45,9 @@ async def update_verification_status(token:str, db:AsyncSession = Depends(get_db
            return success_response(message= "User successfully verified")
 
 
+@user_router.get("/home", response_model=SuccessResponse[UserHome], status_code=200)
+async def get_user_home(db:AsyncSession = Depends(get_db),curr_user:User = Depends(get_current_user)):
+      result = await userservice.compose_home_results(db,curr_user.id,curr_user.email)
+      if result:
+        return success_response(message="successfully retrieved",
+                                data = result)
