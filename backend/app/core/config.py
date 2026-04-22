@@ -16,7 +16,8 @@ class Settings(BaseSettings):
     EMAIL_VERIFY_TOKEN_EXPIRE_MINUTES : timedelta = timedelta(minutes=10)
     EMAIL_VERIFY_COOLDOWN_MINUTES : timedelta = timedelta(minutes=10)
     GEMINI_API_KEY : str
-
+    ENV: str
+    ALLOWED_ORIGINS: str
     class Config:
         env_file = ".env"
 

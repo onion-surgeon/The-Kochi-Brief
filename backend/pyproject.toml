@@ -21,7 +21,6 @@ dependencies = [
     "ruff",
     "black",
     "isort",
-    "psycopg2>=2.9.11",
     "asyncio>=4.0.0",
     "asyncpg>=0.31.0",
     "passlib[bcrypt]>=1.7.4",
