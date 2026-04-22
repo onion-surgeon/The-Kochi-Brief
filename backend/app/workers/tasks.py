@@ -20,7 +20,7 @@ from app.utils.celery_runner import run_async_with_db
 def scraper_orchestrator_task(self,today_date:datetime):
     articleservice = ArticleService()
     try:
-        run_async_with_db(articleservice.scrape_and_store,today_date.date())
+        run_async_with_db(articleservice.scrape_and_store,today_date)
     except Exception as e:
         raise self.retry(exc=e)
 
