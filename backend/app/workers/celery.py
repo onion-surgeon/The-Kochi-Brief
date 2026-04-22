@@ -13,6 +13,6 @@ celery_app = Celery(
 celery_app.conf.beat_schedule = {
     "night-scrape-summarize": {
         "task": "app.workers.tasks.run_scrape_summarise_mail_pipeline",
-        "schedule": crontab(hour=17, minute=30),
+        "schedule": crontab(hour=18, minute=5),
     },
 }
