@@ -31,13 +31,7 @@ services:
     depends_on:
       - redis
 
-  frontend:
-    build: ./frontend
-    container_name: kochi_frontend
-    ports:
-      - "80:8080" 
-    depends_on:
-      - backend
+
 
 volumes:
   redis_data:
