@@ -8,6 +8,7 @@ services:
 
   backend:
     build: ./backend
+    image: kochi_backend_image
     container_name: kochi_backend
     restart: always
     ports:
@@ -20,7 +21,7 @@ services:
       - redis
 
   worker:
-    build: ./backend
+    image: kochi_backend_image
     container_name: kochi_worker
     restart: always
     command: celery -A app.workers.celery:celery_app worker --loglevel=info
@@ -32,7 +33,7 @@ services:
       - redis
 
   celery_beat:
-      build: ./backend
+      image: kochi_backend_image
       container_name: kochi_beat
       restart: always
       command: celery -A app.workers.celery:celery_app beat --loglevel=info
