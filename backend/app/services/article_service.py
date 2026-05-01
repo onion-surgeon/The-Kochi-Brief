@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime
+from datetime import date, datetime, time, timedelta
 
 from sqlalchemy import select
 from app.models.article import Article, Status
@@ -119,6 +119,29 @@ class ArticleService:
         ]
 
         return articles
+
+
+    async def get_news_on_day(self, db: AsyncSession, day: date) -> list[ArticleHome]:
+        start_of_day = datetime.combine(day, time.min)
+        start_of_next_day = start_of_day + timedelta(days=1)
+
+        articles = await db.execute(
+            select(Article)
+            .where(Article.created_at >= start_of_day)
+            .where(Article.created_at < start_of_next_day)
+            .order_by(Article.created_at.desc())
+        )
+        rows = articles.scalars().all()
+        result = [
+            ArticleHome(
+                title=a.title,
+                source=a.source,
+                url=a.url,
+                published=a.created_at
+            )
+            for a in rows
+        ]
+        return result
 
     def get_article(self, article_id: int):
         # TODO: Implement logic to get a single article

@@ -47,7 +47,21 @@ async def update_verification_status(token:str, db:AsyncSession = Depends(get_db
 
 @user_router.get("/home", response_model=SuccessResponse[UserHome], status_code=200)
 async def get_user_home(db:AsyncSession = Depends(get_db),curr_user:User = Depends(get_current_user)):
-      result = await userservice.compose_home_results(db,curr_user.id,curr_user.email)
+      result = await userservice.compose_home_results(db, curr_user)
       if result:
         return success_response(message="successfully retrieved",
                                 data = result)
+
+
+@user_router.post("/subscribe", response_model=SuccessResponse, status_code=200)
+async def subscribe_user(db: AsyncSession = Depends(get_db), curr_user: User = Depends(get_current_user)):
+     result = await userservice.subscribe_user(db, curr_user.id)
+     if result:
+          return success_response(message="You have been subscribed successfully.")
+
+
+@user_router.post("/unsubscribe", response_model=SuccessResponse, status_code=200)
+async def unsubscribe_user(db: AsyncSession = Depends(get_db), curr_user: User = Depends(get_current_user)):
+     result = await userservice.unsubscribe_user(db, curr_user.id)
+     if result:
+          return success_response(message="You have been unsubscribed successfully.")

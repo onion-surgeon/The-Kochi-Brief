@@ -4,6 +4,7 @@ from app.schemas.article import ArticleHome
 class UserBase(BaseModel):
     email: EmailStr
     userid : str| None
+    username: str | None = None
 
 class UserAuth(BaseModel):
     email: EmailStr
@@ -22,4 +23,5 @@ class UserToken(BaseModel):
 class UserHome(BaseModel):
     user: UserBase
     is_verified: bool
+    is_subscribed: bool
     articles: list[ArticleHome]

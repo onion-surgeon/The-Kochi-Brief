@@ -121,6 +121,40 @@ class UserService:
             await db.refresh(user)
             return user
 
+    async def unsubscribe_user(self, db: AsyncSession, user_id: int) -> bool:
+        user = await db.get(User, user_id)
+
+        if not user:
+            raise exc.UserNotFound
+
+        if user.is_subscribed is False:
+            return True
+
+        user.is_subscribed = False
+        try:
+            await db.commit()
+        except Exception:
+            await db.rollback()
+            raise exc.APIException("Failed to unsubscribe user")
+        return True
+
+    async def subscribe_user(self, db: AsyncSession, user_id: int) -> bool:
+        user = await db.get(User, user_id)
+
+        if not user:
+            raise exc.UserNotFound
+
+        if user.is_subscribed is True:
+            return True
+
+        user.is_subscribed = True
+        try:
+            await db.commit()
+        except Exception:
+            await db.rollback()
+            raise exc.APIException("Failed to subscribe user")
+        return True
+
     async def select_all_users(self,db:AsyncSession):
         stmt = select(User)
         result = await db.execute(stmt)
@@ -130,16 +164,17 @@ class UserService:
         verified_status = await db.execute(select(User.is_verified).where(User.id == id))
         return verified_status.scalar_one_or_none()
     
-    async def compose_home_results(self, db:AsyncSession, id:int, email:str)->ArticleHome:
-        status = await self.check_user_verification_status(db, id)
+    async def compose_home_results(self, db:AsyncSession, user: User)->ArticleHome:
         articles_home = await article_service.get_articles_home(db)
         print(articles_home)
         response = UserHome(
         user=UserBase(
             userid='',
-            email=email
+            email=user.email,
+            username=user.username
         ),
-        is_verified=status,
+        is_verified=user.is_verified,
+        is_subscribed=user.is_subscribed,
         articles=articles_home
     )
         

@@ -2,6 +2,7 @@ from fastapi import FastAPI
 import app.exceptions.types as exc 
 import app.exceptions.handler as handler
 from app.api.users import user_router
+from app.api.articles import article_router
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 
@@ -27,6 +28,13 @@ app.include_router(
     prefix = "/api",
     tags = ["Users"]
 )
+
+app.include_router(
+    article_router,
+    prefix = "/api/articles",
+    tags = ["Articles"]
+)
+
 
 allowed_origins = [origin.strip() for origin in settings.ALLOWED_ORIGINS.split(",") if origin.strip()]
 

@@ -20,8 +20,10 @@ export type HomePayload = {
   user: {
     email: string;
     userid: string | null;
+    username?: string | null;
   };
   is_verified: boolean;
+  is_subscribed: boolean;
   articles: ArticleHome[];
 };
 
@@ -76,8 +78,20 @@ export function fetchHome(token: string) {
   return apiRequest<HomePayload>("/api/home", { method: "GET" }, token);
 }
 
+export function fetchArticlesByDay(day: string, token: string) {
+  return apiRequest<ArticleHome[]>(`/api/articles/${encodeURIComponent(day)}`, { method: "GET" }, token);
+}
+
 export function sendVerificationEmail(token: string) {
   return apiRequest<null>("/api/verify", { method: "POST" }, token);
+}
+
+export function subscribeToNewsletter(token: string) {
+  return apiRequest<null>("/api/subscribe", { method: "POST" }, token);
+}
+
+export function unsubscribeFromNewsletter(token: string) {
+  return apiRequest<null>("/api/unsubscribe", { method: "POST" }, token);
 }
 
 export function verifyEmailToken(token: string) {

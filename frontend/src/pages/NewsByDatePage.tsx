@@ -1,17 +1,23 @@
-import { ChangeEvent, useMemo } from "react";
-import { format } from "date-fns";
-import { ArrowLeft, CalendarDays, ExternalLink } from "lucide-react";
+import { ChangeEvent, useEffect } from "react";
+import { format, subDays } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
+import { ArrowLeft, CalendarDays, ExternalLink, LoaderCircle } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
-import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { dailyNewsByDate, TODAY_NEWS_DATE, TODAY_NEWS_KEY } from "@/data/newsByDate";
+import { useAuth } from "@/context/AuthContext";
+import { fetchArticlesByDay } from "@/lib/api";
+
+function getTodayDateString() {
+  return format(new Date(), "yyyy-MM-dd");
+}
 
 function resolveDateFromRoute(dayKey: string | undefined) {
-  if (!dayKey || dayKey === TODAY_NEWS_KEY) {
-    return TODAY_NEWS_DATE;
+  if (!dayKey) {
+    return getTodayDateString();
   }
 
   return dayKey;
@@ -20,18 +26,43 @@ function resolveDateFromRoute(dayKey: string | undefined) {
 const NewsByDatePage = () => {
   const navigate = useNavigate();
   const { dayKey } = useParams();
+  const { session, logout } = useAuth();
 
   const selectedDate = resolveDateFromRoute(dayKey);
-  const articles = dailyNewsByDate[selectedDate] || [];
+  const todayDate = getTodayDateString();
+  const quickDates = [1, 2].map((daysBack) => format(subDays(new Date(), daysBack), "yyyy-MM-dd"));
 
-  const availableDates = useMemo(
-    () => Object.keys(dailyNewsByDate).sort((first, second) => second.localeCompare(first)),
-    [],
-  );
+  const articlesQuery = useQuery({
+    queryKey: ["articles-by-day", selectedDate, session?.token],
+    queryFn: () => fetchArticlesByDay(selectedDate, session!.token),
+    enabled: Boolean(session?.token),
+    retry: false,
+  });
+
+  useEffect(() => {
+    if (!articlesQuery.error || !session) {
+      return;
+    }
+
+    const message = articlesQuery.error instanceof Error ? articlesQuery.error.message : "";
+    if (message.toLowerCase().includes("credentials") || message.toLowerCase().includes("inactive")) {
+      logout();
+      navigate("/login", {
+        replace: true,
+        state: { notice: "Your session expired. Please log in again." },
+      });
+    }
+  }, [articlesQuery.error, logout, navigate, session]);
+
+  if (!session) {
+    return null;
+  }
+
+  const articles = articlesQuery.data?.data ?? [];
 
   function handleDateChange(event: ChangeEvent<HTMLInputElement>) {
     const nextDate = event.target.value;
-    navigate(nextDate === TODAY_NEWS_DATE ? `/news/${TODAY_NEWS_KEY}` : `/news/${nextDate}`);
+    navigate(`/news/${nextDate}`);
   }
 
   return (
@@ -47,10 +78,10 @@ const NewsByDatePage = () => {
               <div className="space-y-1.5">
                 <p className="text-sm font-medium uppercase tracking-[0.2em] text-slate-500">News by date</p>
                 <h1 className="font-serif text-3xl font-bold leading-tight text-slate-950 sm:text-4xl">
-                  Browse Kochi news for a specific day
+                  Catch up on Kochi news by date
                 </h1>
                 <p className="max-w-2xl text-sm leading-5 text-slate-600">
-                  Start with today’s coverage, then jump to another date to revisit the news and its quick summaries.
+                  Pick any day to revisit the stories published from Kochi and scan the updates in one place.
                 </p>
               </div>
             </div>
@@ -73,15 +104,23 @@ const NewsByDatePage = () => {
               </div>
 
               <div className="flex flex-wrap gap-2">
-                {availableDates.slice(0, 3).map((date) => (
+                <Button
+                  type="button"
+                  variant={selectedDate === todayDate ? "default" : "outline"}
+                  className="rounded-full"
+                  onClick={() => navigate(`/news/${todayDate}`)}
+                >
+                  Today
+                </Button>
+                {quickDates.map((date) => (
                   <Button
                     key={date}
                     type="button"
                     variant={date === selectedDate ? "default" : "outline"}
                     className="rounded-full"
-                    onClick={() => navigate(date === TODAY_NEWS_DATE ? `/news/${TODAY_NEWS_KEY}` : `/news/${date}`)}
+                    onClick={() => navigate(`/news/${date}`)}
                   >
-                    {date === TODAY_NEWS_DATE ? "Today" : format(new Date(`${date}T00:00:00`), "dd MMM")}
+                    {format(new Date(`${date}T00:00:00`), "dd MMM")}
                   </Button>
                 ))}
               </div>
@@ -95,26 +134,36 @@ const NewsByDatePage = () => {
             <CardTitle className="font-serif text-2xl text-slate-950 sm:text-3xl">Daily Kochi roundup</CardTitle>
           </CardHeader>
           <CardContent className="min-h-0 flex-1 p-4 pt-0 sm:p-5 sm:pt-0">
-            {articles.length ? (
-              <div className="space-y-3 overflow-visible pt-1 pb-4 md:h-full md:overflow-y-auto md:pr-3 dashboard-scroll">
+            {articlesQuery.isLoading ? (
+              <div className="flex min-h-72 items-center justify-center text-slate-600">
+                <LoaderCircle className="mr-3 h-5 w-5 animate-spin" />
+                Loading articles for this day...
+              </div>
+            ) : articlesQuery.error ? (
+              <Alert variant="destructive">
+                <AlertTitle>Unable to load articles</AlertTitle>
+                <AlertDescription>
+                  {articlesQuery.error instanceof Error ? articlesQuery.error.message : "The request failed."}
+                </AlertDescription>
+              </Alert>
+            ) : articles.length ? (
+              <div className="space-y-3 overflow-visible pb-4 pt-1 md:h-full md:overflow-y-auto md:pr-3 dashboard-scroll">
                 {articles.map((article) => (
                   <a
-                    key={article.id}
+                    key={`${article.url}-${article.published}`}
                     href={article.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="block rounded-[18px] border border-slate-200 bg-slate-50/80 p-3.5 transition hover:border-emerald-300 hover:bg-white sm:p-4"
+                    className="block rounded-[18px] border border-slate-200 bg-slate-50/80 p-3 transition hover:border-emerald-300 hover:bg-white sm:p-3.5 md:grid md:h-[calc((100%-0.75rem)/2)] md:grid-rows-[auto_minmax(0,1fr)_auto] md:overflow-hidden"
                   >
                     <div className="flex flex-wrap items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
                       <span>{article.source}</span>
                       <span>{format(new Date(article.published), "dd MMM yyyy, hh:mm a")}</span>
                     </div>
-                    <h2 className="mt-2 font-serif text-lg leading-tight text-slate-950 sm:text-xl">{article.title}</h2>
-                    <p className="mt-2.5 max-w-4xl text-sm leading-6 text-slate-650">{article.summary}</p>
-                    <div className="mt-3 flex items-center justify-between gap-3">
-                      <Badge variant="outline" className="rounded-full px-3 py-1 text-xs text-slate-700">
-                        Summarised update
-                      </Badge>
+                    <h2 className="mt-2 line-clamp-2 self-start font-serif text-base leading-tight text-slate-950 sm:text-lg md:text-xl">
+                      {article.title}
+                    </h2>
+                    <div className="pt-2 flex items-center justify-end gap-3">
                       <span className="inline-flex items-center gap-2 text-sm font-medium text-emerald-800">
                         Open article
                         <ExternalLink className="h-4 w-4" />
@@ -125,7 +174,7 @@ const NewsByDatePage = () => {
               </div>
             ) : (
               <div className="rounded-[22px] border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-sm text-slate-600">
-                No hardcoded news is available for this date yet. Try one of the recent dates above.
+                No articles are available for this date yet.
               </div>
             )}
           </CardContent>
